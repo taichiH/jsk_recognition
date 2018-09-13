@@ -3,6 +3,7 @@
   <arg name="gui" default="true" />
   <arg name="input_image" default="/zed/rgb/image_rect_color" />
   <arg name="input_cloud" default="/pc_transformer/output" />
+  <!-- <arg name="input_cloud" default="/zed/point_cloud/cloud_registered" /> -->
   <arg name="input_label" default="mask_rcnn_instance_segmentation/output/label_cls" />
 
   <node name="label_array_to_mask_image"
@@ -42,6 +43,9 @@
         args="standalone jsk_pcl/ExtractIndices" >
     <remap from="~input" to="$(arg input_cloud)" />
     <remap from="~indices" to="mask_image_to_point_indices/output" />
+    <rosparam>
+      approximate_sync: true
+    </rosparam>
   </node>
 
   <node name="point_indices_to_cluster_point_indices"
@@ -56,10 +60,10 @@
     <remap from="~target" to="point_indices_to_cluster_point_indices/output" />
     <rosparam>
       align_boxes: true
+      align_boxes_with_plane: false
       target_frame_id: base_link
       approximate_sync: true
       queue_size: 50
-      sort_by: -z_axis
     </rosparam>
   </node>
 
