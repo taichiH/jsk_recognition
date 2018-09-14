@@ -17,6 +17,7 @@ except ImportError:
     sys.exit(1)
 
 import cv_bridge
+import cv2
 from jsk_recognition_msgs.msg import ClusterPointIndices
 from jsk_recognition_msgs.msg import Label
 from jsk_recognition_msgs.msg import LabelArray
@@ -24,7 +25,7 @@ from jsk_topic_tools import ConnectionBasedTransport
 from pcl_msgs.msg import PointIndices
 import rospy
 from sensor_msgs.msg import Image
-
+from aero_recognition_msgs.msg import Scored2DBox, Scored2DBoxArray
 
 class MaskRCNNInstanceSegmentation(ConnectionBasedTransport):
 
@@ -63,6 +64,15 @@ class MaskRCNNInstanceSegmentation(ConnectionBasedTransport):
             '~output/label_ins', Image, queue_size=1)
         self.pub_viz = self.advertise(
             '~output/viz', Image, queue_size=1)
+        self.pub_box = self.advertise(
+            '~boxes', Scored2DBoxArray, queue_size = 1)
+
+        self.label_names = ['alfort', 'almond',\
+                            'apc', 'coffee', 'consome',\
+                            'dars', 'darsmilk', 'darswhite', 'donbe',\
+                            'kinoko', 'macadamia', 'milk', 'mixjuice',\
+                            'marble', 'norishio', 'pie', 'shelf',\
+                            'takenoko', 'tee', 'xylitop', 'yakisoba']
 
     def subscribe(self):
         self.sub = rospy.Subscriber('~input', Image, self.callback,
@@ -81,6 +91,20 @@ class MaskRCNNInstanceSegmentation(ConnectionBasedTransport):
         masks = masks[0]
         labels = labels[0]
         scores = scores[0]
+        boxes = Scored2DBoxArray()
+
+        for bbox, label, score in zip(bboxes, labels, scores):
+            box = Scored2DBox()
+            box.label = self.label_names[int(label)]
+            box.x = bbox[1]
+            box.y = bbox[0]
+            box.width = bbox[3] - bbox[1]
+            box.height = bbox[2] - bbox[0]
+            box.score = score
+            boxes.boxes.append(box)
+
+        boxes.header = imgmsg.header
+        self.pub_box.publish(boxes)
 
         msg_indices = ClusterPointIndices(header=imgmsg.header)
         msg_labels = LabelArray(header=imgmsg.header)
@@ -111,6 +135,7 @@ class MaskRCNNInstanceSegmentation(ConnectionBasedTransport):
             viz = chainer_mask_rcnn.utils.draw_instance_bboxes(
                 img, bboxes, labels + 1, n_class=n_fg_class + 1,
                 masks=masks, captions=captions)
+
             msg_viz = bridge.cv2_to_imgmsg(viz, encoding='rgb8')
             msg_viz.header = imgmsg.header
             self.pub_viz.publish(msg_viz)
