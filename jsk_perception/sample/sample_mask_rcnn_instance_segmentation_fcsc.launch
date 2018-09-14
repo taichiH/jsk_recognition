@@ -1,18 +1,8 @@
 <launch>
 
   <arg name="gui" default="false" />
-  <arg name="gpu" default="0" />
-
-  <!-- <node name="image_publisher" -->
-  <!--       pkg="jsk_perception" type="image_publisher.py" -->
-  <!--       clear_params="true"> -->
-  <!--   <rosparam subst_value="true"> -->
-  <!--     file_name: $(find jsk_perception)/sample/fcsc_sample.jpg -->
-  <!--     fps: 30 -->
-  <!--   </rosparam> -->
-  <!-- </node> -->
-  <!-- <arg name="INPUT_IMAGE" value="image_publisher/output" /> -->
-  <arg name="INPUT_IMAGE" value="/rgb/image_rect_color" />
+  <arg name="gpu" default="-1" />
+  <arg name="INPUT_IMAGE" value="/zed/rgb/image_rect_color" />
 
   <node name="mask_rcnn_instance_segmentation"
         pkg="jsk_perception" type="mask_rcnn_instance_segmentation.py"
@@ -20,13 +10,34 @@
     <remap from="~input" to="$(arg INPUT_IMAGE)" />
     <rosparam subst_value="true">
       gpu: $(arg gpu)
-      pretrained_model: $(find jsk_perception)/trained_data/fcsc_dataset.npz
+      pretrained_model: $(find jsk_perception)/trained_data/fcsc_instance_segmentation_for_semantic_mapping.npz
       fg_class_names:
+        - alfort
+        - almond
+        - apc
         - coffee
+        - consome
+        - dars
+        - darsmilk
+        - darswhite
+        - donbe
+        - kinoko
         - macadamia
+        - marble
         - milk
         - mixjuice
+        - norishio
         - pie
+        - shelf
+        - takenoko
+        - tee
+        - xylitop
+        - yakisoba
+        <!-- - coffee -->
+        <!-- - macadamia -->
+        <!-- - milk -->
+        <!-- - mixjuice -->
+        <!-- - pie -->
     </rosparam>
   </node>
 
