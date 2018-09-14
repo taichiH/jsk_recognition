@@ -2,10 +2,9 @@
 
   <arg name="gui" default="true" />
 
-  <arg name="INPUT_CLOUD" default="/right_hand_camera/depth_registered/points" />
-  <arg name="INPUT_DEPTH" default="/right_hand_camera/depth_registered/hw_registered/image_rect" />
-
-  <include file="$(find jsk_pcl_ros_utils)/sample/include/play_rosbag_shelf_bin.xml" />
+  <arg name="INPUT_IMAGE" default="/zed/rgb/image_rect_color" />
+  <arg name="INPUT_CLOUD" default="/pc_transformer/output" />
+  <arg name="INPUT_DEPTH" default="/zed/depth/depth_registered" />
 
   <node name="pointcloud_to_mask_image"
         pkg="jsk_pcl_ros_utils" type="pointcloud_to_mask_image">
@@ -16,12 +15,20 @@
         pkg="jsk_pcl_ros_utils" type="pointcloud_to_mask_image">
     <remap from="~input/depth" to="$(arg INPUT_DEPTH)" />
     <rosparam>
-      z_near: 0.5
-      z_far: 0.7
+      z_near: 0.0
+      z_far: 0.3
     </rosparam>
   </node>
 
-  <node if="$(arg gui)"
-        name="rqt_gui" pkg="rqt_gui" type="rqt_gui"
-        args="--perspective-file $(find jsk_pcl_ros_utils)/sample/config/sample_pointcloud_to_mask_image.perspective" />
+  <node name="apply_mask_image"
+        pkg="nodelet" type="nodelet"
+        args="standalone jsk_perception/ApplyMaskImage">
+    <remap from="~input" to="$(arg INPUT_IMAGE)" />
+    <!-- <remap from="~input/mask" to="/pointcloud_to_mask_image/output" /> -->
+    <remap from="~input/mask" to="/depth_to_mask_image/output" />
+    <rosparam>
+      approximate_sync: true
+    </rosparam>
+  </node>
+
 </launch>
