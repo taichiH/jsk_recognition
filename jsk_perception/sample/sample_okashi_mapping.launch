@@ -1,0 +1,50 @@
+<launch>
+
+  <arg name="gui" default="true" />
+  <arg name="input_image" default="/zed/rgb/image_rect_color" />
+  <arg name="input_cloud" default="/pc_transformer/output" />
+  <arg name="input_label" default="mask_rcnn_instance_segmentation/output/label_cls" />
+
+  <node name="okashi_label_to_cluster_pointindices"
+        pkg="jsk_pcl_ros_utils" type="label_to_cluster_point_indices" >
+    <remap from="~input" to="$(arg input_label)" />
+    <rosparam>
+      <!-- ignore_labels: [ 0, 1, 4, 5, 6, 7, 9, 10, 11, 15, 17, 18] -->
+      ignore_labels: [3, 4, 12, 13, 15, 16, 18, 19, 21]
+    </rosparam>
+  </node>
+
+  <!-- args="load jsk_pcl_utils/ClusterPointIndicesToPointIndices /zed/zed_nodelet_manager"> -->
+  <node name="okashi_cluster_pointindices_to_pointindices"
+        pkg="nodelet" type="nodelet"
+        args="standalone jsk_pcl_utils/ClusterPointIndicesToPointIndices">
+    <remap from="~input" to="/okashi_label_to_cluster_pointindices/output" />
+  </node>
+
+  <node name="okashi_extract_indices"
+        pkg="nodelet" type="nodelet"
+        args="standalone jsk_pcl/ExtractIndices" >
+    <remap from="~input" to="$(arg input_cloud)" />
+    <remap from="~indices" to="okashi_cluster_pointindices_to_pointindices/output" />
+    <rosparam>
+      approximate_sync: true
+    </rosparam>
+  </node>
+
+  <node name="label_cluster_point_indices_decomposer"
+        pkg="nodelet" type="nodelet"
+        args="standalone jsk_pcl/ClusterPointIndicesDecomposer" >
+    <!-- <remap from="~input" to="label_extract_indices/output" /> -->
+    <remap from="~input" to="$(arg input_cloud)" />
+    <remap from="~target" to="okashi_label_to_cluster_pointindices/output" />
+    <rosparam>
+      align_boxes: true
+      align_boxes_with_plane: false
+      <!-- target_frame_id: base_link -->
+      target_frame_id: map
+      approximate_sync: true
+      queue_size: 50
+    </rosparam>
+  </node>
+
+</launch>
