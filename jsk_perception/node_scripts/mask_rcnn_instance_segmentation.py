@@ -26,12 +26,16 @@ from pcl_msgs.msg import PointIndices
 import rospy
 from sensor_msgs.msg import Image
 from aero_recognition_msgs.msg import Scored2DBox, Scored2DBoxArray
+from std_srvs.srv import SetBool, SetBoolResponse
 
 class MaskRCNNInstanceSegmentation(ConnectionBasedTransport):
 
     def __init__(self):
         rospy.logwarn('This node is experimental, and its interface '
                       'can be changed in the future.')
+
+        self.setup()
+        self.run_flag = True
 
         super(MaskRCNNInstanceSegmentation, self).__init__()
         # gpu
@@ -81,65 +85,80 @@ class MaskRCNNInstanceSegmentation(ConnectionBasedTransport):
     def unsubscribe(self):
         self.sub.unregister()
 
+    def setup(self):
+        rospy.Service('~set_mode', SetBool, self.set_flag)
+
+    def set_flag(self, req):
+        prev_flag = self.run_flag
+        self.run_flag = req.data
+        if(prev_flag != self.run_flag):
+            if(self.run_flag):
+                rospy.loginfo("Start detection")
+            else:
+                rospy.loginfo("Stop detection")
+        res = SetBoolResponse(success = True)
+        res.success = True
+        return res
+
     def callback(self, imgmsg):
-        bridge = cv_bridge.CvBridge()
-        img = bridge.imgmsg_to_cv2(imgmsg, desired_encoding='rgb8')
-        img_chw = img.transpose(2, 0, 1)  # C, H, W
+        if(self.run_flag):
+            bridge = cv_bridge.CvBridge()
+            img = bridge.imgmsg_to_cv2(imgmsg, desired_encoding='rgb8')
+            img_chw = img.transpose(2, 0, 1)  # C, H, W
 
-        bboxes, masks, labels, scores = self.model.predict([img_chw])
-        bboxes = bboxes[0]
-        masks = masks[0]
-        labels = labels[0]
-        scores = scores[0]
-        boxes = Scored2DBoxArray()
+            bboxes, masks, labels, scores = self.model.predict([img_chw])
+            bboxes = bboxes[0]
+            masks = masks[0]
+            labels = labels[0]
+            scores = scores[0]
+            boxes = Scored2DBoxArray()
 
-        for bbox, label, score in zip(bboxes, labels, scores):
-            box = Scored2DBox()
-            box.label = self.label_names[int(label)]
-            box.x = bbox[1]
-            box.y = bbox[0]
-            box.width = bbox[3] - bbox[1]
-            box.height = bbox[2] - bbox[0]
-            box.score = score
-            boxes.boxes.append(box)
+            for bbox, label, score in zip(bboxes, labels, scores):
+                box = Scored2DBox()
+                box.label = self.label_names[int(label)]
+                box.x = bbox[1]
+                box.y = bbox[0]
+                box.width = bbox[3] - bbox[1]
+                box.height = bbox[2] - bbox[0]
+                box.score = score
+                boxes.boxes.append(box)
 
-        boxes.header = imgmsg.header
-        self.pub_box.publish(boxes)
+            boxes.header = imgmsg.header
+            self.pub_box.publish(boxes)
 
-        msg_indices = ClusterPointIndices(header=imgmsg.header)
-        msg_labels = LabelArray(header=imgmsg.header)
-        # -1: label for background
-        lbl_cls = - np.ones(img.shape[:2], dtype=np.int32)
-        lbl_ins = - np.ones(img.shape[:2], dtype=np.int32)
-        for ins_id, (mask, label) in enumerate(zip(masks, labels)):
-            indices = np.where(mask.flatten())[0]
-            indices_msg = PointIndices(header=imgmsg.header, indices=indices)
-            msg_indices.cluster_indices.append(indices_msg)
-            class_name = self.fg_class_names[label]
-            msg_labels.labels.append(Label(id=label, name=class_name))
-            lbl_cls[mask] = label
-            lbl_ins[mask] = ins_id  # instance_id
-        self.pub_indices.publish(msg_indices)
-        self.pub_labels.publish(msg_labels)
+            msg_indices = ClusterPointIndices(header=imgmsg.header)
+            msg_labels = LabelArray(header=imgmsg.header)
+            # -1: label for background
+            lbl_cls = - np.ones(img.shape[:2], dtype=np.int32)
+            lbl_ins = - np.ones(img.shape[:2], dtype=np.int32)
+            for ins_id, (mask, label) in enumerate(zip(masks, labels)):
+                indices = np.where(mask.flatten())[0]
+                indices_msg = PointIndices(header=imgmsg.header, indices=indices)
+                msg_indices.cluster_indices.append(indices_msg)
+                class_name = self.fg_class_names[label]
+                msg_labels.labels.append(Label(id=label, name=class_name))
+                lbl_cls[mask] = label
+                lbl_ins[mask] = ins_id  # instance_id
+            self.pub_indices.publish(msg_indices)
+            self.pub_labels.publish(msg_labels)
 
-        msg_lbl_cls = bridge.cv2_to_imgmsg(lbl_cls)
-        msg_lbl_ins = bridge.cv2_to_imgmsg(lbl_ins)
-        msg_lbl_cls.header = msg_lbl_ins.header = imgmsg.header
-        self.pub_lbl_cls.publish(msg_lbl_cls)
-        self.pub_lbl_ins.publish(msg_lbl_ins)
+            msg_lbl_cls = bridge.cv2_to_imgmsg(lbl_cls)
+            msg_lbl_ins = bridge.cv2_to_imgmsg(lbl_ins)
+            msg_lbl_cls.header = msg_lbl_ins.header = imgmsg.header
+            self.pub_lbl_cls.publish(msg_lbl_cls)
+            self.pub_lbl_ins.publish(msg_lbl_ins)
 
-        if self.pub_viz.get_num_connections() > 0:
-            n_fg_class = len(self.fg_class_names)
-            captions = ['{:d}: {:s}'.format(l, self.fg_class_names[l])
-                        for l in labels]
-            viz = chainer_mask_rcnn.utils.draw_instance_bboxes(
-                img, bboxes, labels + 1, n_class=n_fg_class + 1,
-                masks=masks, captions=captions)
+            if self.pub_viz.get_num_connections() > 0:
+                n_fg_class = len(self.fg_class_names)
+                captions = ['{:d}: {:s}'.format(l, self.fg_class_names[l])
+                            for l in labels]
+                viz = chainer_mask_rcnn.utils.draw_instance_bboxes(
+                    img, bboxes, labels + 1, n_class=n_fg_class + 1,
+                    masks=masks, captions=captions)
 
-            msg_viz = bridge.cv2_to_imgmsg(viz, encoding='rgb8')
-            msg_viz.header = imgmsg.header
-            self.pub_viz.publish(msg_viz)
-
+                msg_viz = bridge.cv2_to_imgmsg(viz, encoding='rgb8')
+                msg_viz.header = imgmsg.header
+                self.pub_viz.publish(msg_viz)
 
 if __name__ == '__main__':
     rospy.init_node('mask_rcnn_instance_segmentation')
