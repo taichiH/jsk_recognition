@@ -35,7 +35,7 @@
         pkg="nodelet" type="nodelet"
         args="standalone jsk_pcl/ClusterPointIndicesDecomposer" >
     <!-- <remap from="~input" to="label_extract_indices/output" /> -->
-    <remap from="~input" to="$(arg input_cloud)" />
+    <remap from="~input" to="okashi_extract_indices/output" />
     <remap from="~target" to="okashi_label_to_cluster_pointindices/output" />
     <rosparam>
       align_boxes: true

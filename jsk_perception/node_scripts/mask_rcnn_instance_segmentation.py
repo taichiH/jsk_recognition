@@ -67,11 +67,11 @@ class MaskRCNNInstanceSegmentation(ConnectionBasedTransport):
         self.pub_box = self.advertise(
             '~boxes', Scored2DBoxArray, queue_size = 1)
 
-        self.label_names = ['alfort', 'almond',\
-                            'apc', 'coffee', 'consome',\
+        self.label_names = ['alfort', 'alfortwhite', 'almond',\
+                            'apc_shlef_flont', 'coffee', 'consome',\
                             'dars', 'darsmilk', 'darswhite', 'donbe',\
                             'kinoko', 'macadamia', 'milk', 'mixjuice',\
-                            'marble', 'norishio', 'pie', 'shelf',\
+                            'marble', 'norishio', 'pie', 'shelf_flont',\
                             'takenoko', 'tee', 'xylitop', 'yakisoba']
 
     def subscribe(self):

@@ -1,5 +1,4 @@
 <launch>
-
   <arg name="gui" default="true" />
   <arg name="input_image" default="/zed/rgb/image_rect_color" />
   <arg name="input_cloud" default="/pc_transformer/output" />
@@ -9,7 +8,7 @@
         pkg="jsk_perception" type="label_array_to_mask_image">
     <remap from="~input" to="$(arg input_label)" />
     <rosparam>
-      label_values: [0, 5, 6, 9, 17]
+      label_values: [0, 1, 2, 6, 7, 8, 10, 11, 16, 18]
     </rosparam>
   </node>
 
@@ -17,7 +16,7 @@
         pkg="jsk_perception" type="label_array_to_mask_image">
     <remap from="~input" to="$(arg input_label)" />
     <rosparam>
-      label_values: [3, 12, 13, 18]
+      label_values: [4, 13, 14, 19]
     </rosparam>
   </node>
 
