@@ -27,6 +27,8 @@ class BoundingBoxArrayPublisher(object):
             positions = rospy.get_param('~positions')
             rotations = rospy.get_param('~rotations')
             dimensions = rospy.get_param('~dimensions')
+            rospy.loginfo(rotations)
+
             if len(rotations) != len(positions):
                 rospy.logfatal('Number of ~rotations is expected as {}, but {}'
                             .format(len(positions), len(rotations)))
