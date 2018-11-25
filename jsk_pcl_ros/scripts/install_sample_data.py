@@ -30,7 +30,7 @@ def main():
     download_data(
         path='sample/data/2017-06-19-19-34-18_tabletop_coffeecup.tgz',
         url='https://drive.google.com/uc?id=0B5DV6gwLHtyJRTJ0eGdVYk43bEU',
-        md5='d58e894c853fc4485d08547b9fc2b640',
+        md5='58002c60761d192322413f799368ae88',
         extract=True,
     )
 
@@ -102,6 +102,16 @@ def main():
         md5='f702e012730db7aaf01b9868280d8bca',
         compressed_bags=[
             'sample/data/sample_door_handle_detector.bag',
+        ],
+    )
+
+    download_data(
+        path='sample/data/octomap_contact.bag.tgz',
+        url='https://drive.google.com/uc?id=1r7Hj4ujB8Ml5QHg7_Q6kd3rbtL6kzTbh',
+        md5='a6f4d560830c93e0710fef0e7518a099',
+        extract=True,
+        compressed_bags=[
+            'sample/data/octomap_contact.bag',
         ],
     )
 

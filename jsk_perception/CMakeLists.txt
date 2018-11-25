@@ -339,6 +339,16 @@ add_custom_target(eusmodel_template ALL DEPENDS
 # Install
 # ------------------------------------------------------------------------------------
 
+# From https://github.com/jsk-ros-pkg/jsk_recognition/pull/2345
+# Install header files directly into ${CATKIN_PACKAGE_INCLUDE_DESTINATION}.
+# If the package has setup.py and modules under src/${PROJECT_NAME}/,
+# install python executables directly into ${CATKIN_PACKAGE_BIN_DESTINATION}.
+# However, if it doesn't have setup.py, directories including python executables
+# should be installed recursively into ${CATKIN_PACKAGE_SHARE_DESTINATION}.
+# Also, other directories like 'launch' or 'sample' must be installed
+# recursively into ${CATKIN_PACKAGE_SHARE_DESTINATION}.
+# Be careful that 'launch' and 'launch/' are different: the former is directory
+# and the latter is each content.
 install(TARGETS
   # Libraries
   ${PROJECT_NAME}
@@ -351,17 +361,14 @@ install(TARGETS
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-install(DIRECTORY node_scripts/ scripts/
-        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-        USE_SOURCE_PERMISSIONS
-)
 
-install(DIRECTORY config euslisp launch sample plugins template
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-        USE_SOURCE_PERMISSIONS
+install(DIRECTORY config euslisp launch node_scripts plugins sample scripts template test
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
 )
 install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 
 # ------------------------------------------------------------------------------------
 # Test
@@ -423,6 +430,7 @@ if(CATKIN_ENABLE_TESTING)
     jsk_add_rostest(test/mask_image_to_label.test)
     jsk_add_rostest(test/overlay_image_color_on_mono.test)
     jsk_add_rostest(test/people_pose_estimation_2d.test)
+    jsk_add_rostest(test/human_mesh_recovery.test)
     jsk_add_rostest(test/probability_image_classifier.test)
     jsk_add_rostest(test/rect_array_to_image_marker.test)
     jsk_add_rostest(test/regional_feature_based_object_recognition.test)
