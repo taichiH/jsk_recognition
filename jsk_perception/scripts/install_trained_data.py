@@ -192,6 +192,17 @@ def main():
             md5='51c69c182b3bb04a728d256e93a3be36',
         )
 
+    # node_scripts/handheld_object_tracking.py
+    path = 'trained_data/handheld_object_tracking.caffemodel'
+    if _chainer_available:
+        download_data(
+            pkg_name=PKG,
+            path=path,
+            url='https://drive.google.com/'
+            'uc?id=1ePcjmce8loiloGYMk4663AqtAtc5Xu67',
+            md5='70cee807b70fd16de4147f42ee3a1754',
+        )
+
     # node_scripts/feature_based_object_recognition.py
     download_data(
         pkg_name=PKG,
