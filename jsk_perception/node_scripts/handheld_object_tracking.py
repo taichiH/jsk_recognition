@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import cv2 as cv
+import cv2
 import numpy as np
 import chainer
 from chainer.links import caffe
@@ -33,6 +34,7 @@ class HandHheldObjectTracking(object):
         chainer.global_config.enable_backprop = False
 
         self.use_area = rospy.get_param('~use_area', True)
+        self.max_distance = rospy.get_param('~max_distance', 1.5)
 
         self.scales = np.array([1.250], dtype=np.float32)
 
@@ -46,9 +48,11 @@ class HandHheldObjectTracking(object):
         self.prev_rgb = None
         self.prev_depth = None
 
-        self.prob_map_pub = rospy.Publisher(
-            '~output/probability_map', Image, queue_size=1)
+        self.mask_pub = rospy.Publisher(
+            '~output/mask', Image, queue_size=1)
         self.image_pub = rospy.Publisher('~output/viz', Image, queue_size=1)
+        self.debug_image_pub = rospy.Publisher('~output/debug/viz',
+                                               Image, queue_size=1)
         self.rect_pub = rospy.Publisher('~output/rect', Rect, queue_size=1)
 
         self.subscribe()
@@ -208,17 +212,22 @@ class HandHheldObjectTracking(object):
             kernel = np.ones((9, 9), np.uint8)
             im_mask = cv.dilate(im_mask, kernel, iterations=1)
 
+            debug_image = cv2.addWeighted(
+                rgb, 0.5, cv2.cvtColor(im_mask, cv2.COLOR_GRAY2BGR), 0.5, 0)
+            debug_image_msg = self.cv_bridge.cv2_to_imgmsg(debug_image, "bgr8")
+            debug_image_msg.header = header
+            self.debug_image_pub.publish(debug_image_msg)
+
             # remove incorrect mask by depth masking
-            im_mask2 = np.zeros(im_mask.shape, np.uint8)
-            im_mask2[y:y+h, x:x+w] = im_mask[y:y+h, x:x+w]
-            im_mask = self.depth_mask_filter(depth, im_mask2)
+            im_mask = self.depth_mask_filter(depth, im_mask, self.max_distance)
 
             # reduce mask by scale
-            prob_msg = self.cv_bridge.cv2_to_imgmsg(im_mask, "mono8")
-            prob_msg.header = header
-            self.prob_map_pub.publish(prob_msg)
-            self.image_pub.publish(
-                self.cv_bridge.cv2_to_imgmsg(rgb, "bgr8"))
+            mask_msg = self.cv_bridge.cv2_to_imgmsg(im_mask, "mono8")
+            mask_msg.header = header
+            self.mask_pub.publish(mask_msg)
+            image_msg = self.cv_bridge.cv2_to_imgmsg(rgb, "bgr8")
+            image_msg.header = header
+            self.image_pub.publish(image_msg)
 
             rect_msg = Rect()
             rect_msg.header = header
@@ -297,7 +306,12 @@ class HandHheldObjectTracking(object):
 
     def callback(self, image_msg, depth_msg):
         rgb = self.cv_bridge.imgmsg_to_cv2(image_msg, 'bgr8')
-        depth = self.cv_bridge.imgmsg_to_cv2(depth_msg, '32FC1')
+        depth = self.cv_bridge.imgmsg_to_cv2(depth_msg, 'passthrough')
+        if depth_msg.encoding == '16UC1':
+            depth = np.asarray(depth, dtype=np.float32)
+            depth /= 1000  # convert metric: mm -> m
+        elif depth_msg.encoding != '32FC1':
+            rospy.logerr('Unsupported depth encoding: %s' % depth_msg.encoding)
 
         if rgb is None or depth is None:
             rospy.logwarn('input msg is empty')
@@ -332,6 +346,7 @@ class HandHheldObjectTracking(object):
         y = rect_msg.polygon.points[0].y
         w = rect_msg.polygon.points[1].x - x
         h = rect_msg.polygon.points[1].y - y
+        self.prev_roi = None
         self.rect = np.array([x, y, w, h])
         rospy.loginfo('Object Rect Received')
 
