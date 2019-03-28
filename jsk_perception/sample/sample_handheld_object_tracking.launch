@@ -1,0 +1,34 @@
+<launch>
+
+  <arg name="gui" default="true" />
+  <arg name="gpu" default="-1" />
+  <arg name="input_image" default="/hsrb/head_rgbd_sensor/rgb/image_rect_color" />
+  <arg name="input_depth" default="/hsrb/head_rgbd_sensor/depth_registered/image_rect_raw" />
+  <arg name="input_rect" default="$(arg input_image)/screenrectangle" />
+
+  <node name="handheld_object_tracking"
+        pkg="jsk_perception" type="handheld_object_tracking.py"
+        output="screen" >
+    <remap from="~input" to="$(arg input_image)" />
+    <remap from="~input/depth" to="$(arg input_depth)" />
+    <remap from="~input/rect" to="$(arg input_rect)"/>
+
+    <rosparam subst_value="true">
+      gpu: $(arg gpu)
+      pretrained_model: $(find jsk_perception)/trained_data/handheld_object_tracking.caffemodel
+    </rosparam>
+  </node>
+
+  <node name="image_view2_display"
+        pkg="image_view2" type="image_view2" >
+    <remap from="image" to="$(arg input_image)" />
+  </node>
+
+  <group if="$(arg gui)">
+    <node name="image_view0"
+          pkg="image_view" type="image_view">
+      <remap from="image" to="handheld_object_tracking/output/viz" />
+    </node>
+  </group>
+
+</launch>
