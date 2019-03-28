@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import cv2 as cv
 import cv2
 import numpy as np
 import chainer
@@ -14,7 +13,7 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point32
 from geometry_msgs.msg import PolygonStamped as Rect
 
-(CV_MAJOR, CV_MINOR, _) = cv.__version__.split(".")
+(CV_MAJOR, CV_MINOR, _) = cv2.__version__.split(".")
 
 
 class HandHheldObjectTracking(object):
@@ -88,7 +87,7 @@ class HandHheldObjectTracking(object):
         depth /= depth.max()
         depth *= 255.0
         depth = depth.astype(np.uint8)
-        depth = cv.applyColorMap(depth, cv.COLORMAP_JET)
+        depth = cv2.applyColorMap(depth, cv2.COLORMAP_JET)
 
         depth = depth.astype(np.float32)
         depth /= depth.max()
@@ -106,9 +105,9 @@ class HandHheldObjectTracking(object):
         image = rgb.copy()
 
         # resize to network input
-        rgb = cv.resize(
+        rgb = cv2.resize(
             rgb, (self.image_width, self.image_height))
-        depth = cv.resize(
+        depth = cv2.resize(
             depth, (self.image_width, self.image_height))
 
         # transpose to c, h, w
@@ -173,16 +172,16 @@ class HandHheldObjectTracking(object):
             prob = prob.astype(np.uint8)
 
             rect = crop_rects[index]
-            prob = cv.resize(prob, (rect[2], rect[3]))
+            prob = cv2.resize(prob, (rect[2], rect[3]))
             probability_map.append(prob)
 
         for index, prob in enumerate(probability_map):
             kernel = np.ones((7, 7), np.uint8)
-            prob = cv.erode(prob, kernel, iterations=1)
+            prob = cv2.erode(prob, kernel, iterations=1)
 
-            prob = cv.GaussianBlur(prob, (5, 5), 0)
-            _, prob = cv.threshold(
-                prob, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+            prob = cv2.GaussianBlur(prob, (5, 5), 0)
+            _, prob = cv2.threshold(
+                prob, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
             rect = crop_rects[index]
             bbox = self.create_mask_rect(prob, rect)
@@ -205,12 +204,12 @@ class HandHheldObjectTracking(object):
             self.rect = bbox.copy()
 
             x, y, w, h = bbox
-            cv.rectangle(rgb, (int(x), int(y)),
-                         (int(x+w), int(h+y)), (0, 255, 0), 4)
+            cv2.rectangle(rgb, (int(x), int(y)),
+                          (int(x+w), int(h+y)), (0, 255, 0), 4)
 
             # test
             kernel = np.ones((9, 9), np.uint8)
-            im_mask = cv.dilate(im_mask, kernel, iterations=1)
+            im_mask = cv2.dilate(im_mask, kernel, iterations=1)
 
             debug_image = cv2.addWeighted(
                 rgb, 0.5, cv2.cvtColor(im_mask, cv2.COLOR_GRAY2BGR), 0.5, 0)
@@ -255,14 +254,14 @@ class HandHheldObjectTracking(object):
             return
 
         if CV_MAJOR < '3':
-            contour, _ = cv.findContours(
+            contour, _ = cv2.findContours(
                 im_gray.copy(),
-                cv.RETR_CCOMP,
-                cv.CHAIN_APPROX_SIMPLE)
+                cv2.RETR_CCOMP,
+                cv2.CHAIN_APPROX_SIMPLE)
         else:
-            im, contour, _ = cv.findContours(
-                im_gray.copy(), cv.RETR_CCOMP,
-                cv.CHAIN_APPROX_SIMPLE)
+            im, contour, _ = cv2.findContours(
+                im_gray.copy(), cv2.RETR_CCOMP,
+                cv2.CHAIN_APPROX_SIMPLE)
 
         prev_center = np.array([self.rect[0] + self.rect[2] / 2.0,
                                 self.rect[1] + self.rect[3] / 2.0])
@@ -272,7 +271,7 @@ class HandHheldObjectTracking(object):
         index = -1
         for i, cnt in enumerate(contour):
             if not self.use_area:
-                box = cv.boundingRect(contour[index])
+                box = cv2.boundingRect(contour[index])
                 center = np.array([box[0] + rect[0] + box[2] / 2.0,
                                    box[1] + rect[1] + box[3] / 2.0])
                 distance = np.linalg.norm(prev_center - center)
@@ -281,12 +280,12 @@ class HandHheldObjectTracking(object):
                     min_distance = distance
                     index = i
 
-            a = cv.contourArea(cnt)
+            a = cv2.contourArea(cnt)
             if max_area < a:
                 max_area = a
                 index = i
 
-        rect = cv.boundingRect(contour[index]) if index > -1 else None
+        rect = cv2.boundingRect(contour[index]) if index > -1 else None
         return rect
 
     def get_bbox(self, rgb, rect, pad=8):
