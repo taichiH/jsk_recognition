@@ -2,8 +2,8 @@
 
   <arg name="gui" default="true" />
   <arg name="gpu" default="-1" />
-  <arg name="input_image" default="/hsrb/head_rgbd_sensor/rgb/image_rect_color" />
-  <arg name="input_depth" default="/hsrb/head_rgbd_sensor/depth_registered/image_rect_raw" />
+  <arg name="input_image" default="/d435/color/image_rect_color" />
+  <arg name="input_depth" default="/d435/aligned_depth_to_color/image_raw" />
   <arg name="input_rect" default="$(arg input_image)/screenrectangle" />
 
   <node name="handheld_object_tracking"
