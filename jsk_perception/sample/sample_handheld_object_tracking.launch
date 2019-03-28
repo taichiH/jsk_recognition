@@ -19,6 +19,16 @@
     </rosparam>
   </node>
 
+  <node name="apply_mask_image"
+        pkg="jsk_perception" type="apply_mask_image">
+    <remap from="~input" to="$(arg input_image)" />
+    <remap from="~input/mask" to="handheld_object_tracking/output/mask" />
+    <rosparam>
+      approximate_sync: true
+      clip: false
+    </rosparam>
+  </node>
+
   <node name="image_view2_display"
         pkg="image_view2" type="image_view2" >
     <remap from="image" to="$(arg input_image)" />
@@ -28,6 +38,14 @@
     <node name="image_view0"
           pkg="image_view" type="image_view">
       <remap from="image" to="handheld_object_tracking/output/viz" />
+    </node>
+    <node name="image_view1"
+          pkg="image_view" type="image_view">
+      <remap from="image" to="apply_mask_image/output" />
+    </node>
+    <node name="image_view2"
+          pkg="image_view" type="image_view">
+      <remap from="image" to="handheld_object_tracking/output/debug/viz" />
     </node>
   </group>
 
