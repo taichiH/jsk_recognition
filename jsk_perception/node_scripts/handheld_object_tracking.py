@@ -316,6 +316,7 @@ class HandHheldObjectTracking(object):
             rospy.logwarn('input msg is empty')
             return
 
+        depth.flags.writeable = True
         depth[np.isnan(depth)] = 0.0
 
         if self.rect is not None:
