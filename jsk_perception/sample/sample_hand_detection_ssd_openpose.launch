@@ -1,0 +1,50 @@
+<launch>
+  <arg name="NAME_SPACE" default="ssd_hand_detector" />
+  <arg name="camera" default="camera" />
+  <arg name="INPUT_IMAGE" default="/$(arg camera)/rgb/image_rect_color" />
+  <arg name="gui" default="true" />
+
+  <include file="$(find jsk_perception)/sample/include/play_rosbag_people.xml" />
+
+  <group ns="$(arg NAME_SPACE)">
+    <node name="ssd_object_detector"
+          pkg="jsk_perception" type="ssd_object_detector.py"
+          output="screen" >
+      <remap from="~input" to="$(arg INPUT_IMAGE)" />
+    <rosparam subst_value="true">
+      gpu: 0
+      label_names: [hands]
+    </rosparam>
+    <param name="model_path"
+           value="$(find jsk_perception)/trained_data/hand_ssd300_chainermodel.npz"
+           unless="false" />
+    </node>
+
+    <node name="people_pose_estimation_2d_hand"
+          pkg="jsk_perception" type="people_pose_estimation_2d_hand.py"
+          output="screen">
+      <remap from="~input" to="$(arg INPUT_IMAGE)" />
+      <remap from="~input/rect" to="ssd_object_detector/output/rect" />
+      <rosparam subst_value="true">
+        gpu: 1
+        hand:
+           model_file: $(find jsk_perception)/trained_data/pose_estimation_2d_hand.chainermodel
+        with_depth: false
+        scales: [0.38]
+        stride: 8
+        approximate_sync: true
+      </rosparam>
+    </node>
+
+    <group if="$(arg gui)">
+      <node name="image_view_ssd"
+            pkg="image_view" type="image_view">
+        <remap from="image" to="ssd_object_detector/output/image" />
+      </node>
+      <node name="image_people_pose"
+            pkg="image_view" type="image_view">
+        <remap from="image" to="people_pose_estimation_2d_hand/output" />
+      </node>
+    </group>
+  </group>
+</launch>
